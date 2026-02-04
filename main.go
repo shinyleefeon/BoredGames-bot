@@ -54,5 +54,13 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 	if m.Content == "!clanker" {
 		s.ChannelMessageSend(m.ChannelID, "Beep boop I'm a bot")
+	} else if m.Content == "!Clanker seize him and take him to the penis explosion chamber" {
+		file, err := os.Open("Resources/MODS.gif")
+		if err != nil {
+			fmt.Println("Error opening MODS.gif:", err)
+			return
+		}
+		defer file.Close()
+		_, _ = s.ChannelFileSend(m.ChannelID, "MODS.gif", file)
 	}
 }
