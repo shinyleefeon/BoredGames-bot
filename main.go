@@ -6,7 +6,48 @@ import (
 	"os/signal"
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
+	"strings"
 )
+
+var commands = []*discordgo.ApplicationCommand{
+	{
+        Name:        "schedule",
+        Description: "Schedule an event",
+        Options: []*discordgo.ApplicationCommandOption{
+            {
+                Type:        discordgo.ApplicationCommandOptionString,
+                Name:        "name",
+                Description: "Name of the board game (e.g. Terraforming Mars)",
+                Required:    true,
+            },
+            {
+                Type:        discordgo.ApplicationCommandOptionString,
+                Name:        "date",
+                Description: "Date (YYYY-MM-DD)",
+                Required:    true,
+            },
+            {
+                Type:        discordgo.ApplicationCommandOptionString,
+                Name:        "time",
+                Description: "Time (HH:MM in 24h format)",
+                Required:    true,
+            },
+            {
+                Type:        discordgo.ApplicationCommandOptionString,
+                Name:        "description",
+                Description: "Optional: Details about the session",
+                Required:    false,
+            },
+            {
+                Type:        discordgo.ApplicationCommandOptionString,
+                Name:        "location",
+                Description: "Optional: Where we are playing (defaults to Voice)",
+                Required:    false,
+            },
+        },
+    },
+}
+
 
 
 func main() {
@@ -30,7 +71,10 @@ func main() {
 	}
 
 	dg.AddHandler(messageCreate)
-	dg.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentMessageContent
+	dg.AddHandler(handleInteractions)
+	//Declare intents for discord
+	dg.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentMessageContent | discordgo.IntentsGuildScheduledEvents
+
 	//open a websocket connection to Discord
 	err = dg.Open()
 	if err != nil {
@@ -38,6 +82,21 @@ func main() {
 		return
 	}
 	defer dg.Close()
+
+	// This wipes all global commands if you ever need a fresh start
+	oldCommands, _ := dg.ApplicationCommands(dg.State.User.ID, "")
+	for _, v := range oldCommands {
+		dg.ApplicationCommandDelete(dg.State.User.ID, "", v.ID)
+	}
+
+	//register commands
+	fmt.Println("Registering commands...")
+	for _, v := range commands {
+		_, err := dg.ApplicationCommandCreate(dg.State.User.ID, "565588367002042400", v)
+		if err != nil {
+			fmt.Printf("Cannot create '%v' command: %v\n", v.Name, err)
+		}
+	}
 
 	fmt.Println("Bot is now running. Press CTRL-C to exit.")
 
@@ -52,15 +111,41 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
-	if m.Content == "!clanker" {
-		s.ChannelMessageSend(m.ChannelID, "Beep boop I'm a bot")
-	} else if m.Content == "!Clanker seize him and take him to the penis explosion chamber" {
-		file, err := os.Open("Resources/MODS.gif")
-		if err != nil {
-			fmt.Println("Error opening MODS.gif:", err)
+	if strings.HasPrefix(strings.ToLower(m.Content), "!clanker") {
+		args := strings.Fields(m.Content)
+		if len(args) < 2 {
+			s.ChannelMessageSend(m.ChannelID, "Hey that's our word!")
 			return
 		}
-		defer file.Close()
-		_, _ = s.ChannelFileSend(m.ChannelID, "MODS.gif", file)
+		switch strings.ToLower(args[1]) {
+
+
+
+
+
+		case "seize":
+			if strings.ToLower(m.Content) == "!clanker seize him and take him to the penis explosion chamber" {
+				file, err := os.Open("Resources/MODS.gif")
+				if err != nil {
+					fmt.Println("Error opening MODS.gif:", err)
+					return
+				}
+				defer file.Close()
+				_, _ = s.ChannelFileSend(m.ChannelID, "MODS.gif", file)
+			}
+		
+		/*case "create_event":
+			err := Create_Event(args[2:])
+			if err != nil {
+				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Error %s \n Create_Event Usage: ", err))
+
+		}*/
 	}
+
+	
+	
+	
+	
+	
+}
 }
