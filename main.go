@@ -7,7 +7,15 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
 	"strings"
+	"database/sql"
+	//"time"
+	"BoredGames-bot/internal/database"
 )
+
+type BotApp struct {
+	Session *discordgo.Session
+	DB *sql.DB
+}
 
 var commands = []*discordgo.ApplicationCommand{
 	{
@@ -51,7 +59,7 @@ var commands = []*discordgo.ApplicationCommand{
 
 
 func main() {
-	// Load .env file
+	// Load environment
 	if err := godotenv.Load(); err != nil {
 		fmt.Println("Error loading .env file")
 	}
@@ -61,6 +69,25 @@ func main() {
 		fmt.Println("No Discord bot token provided in environment variable 'DiscordBotToken'")
 		return
 	}
+	defGuild := os.Getenv("DefaultGuildID")
+	if defGuild == "" {
+		fmt.Println("No default guild ID provided in environment variable 'DefaultGuildID'")
+		return
+	}
+
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "./boredgames.db" // Default path if not provided
+	}
+	fmt.Printf("Using database path: %s\n", dbPath)
+	
+	// run db migrations
+	db, err := database.InitDB(dbPath)
+	if err != nil {
+		fmt.Printf("Database initialization failed: %v\n", err)
+		return
+	}
+	defer db.Close()
 
 
 	//make new bot
@@ -84,19 +111,21 @@ func main() {
 	defer dg.Close()
 
 	// This wipes all global commands if you ever need a fresh start
-	oldCommands, _ := dg.ApplicationCommands(dg.State.User.ID, "")
+	oldCommands, _ := dg.ApplicationCommands(dg.State.User.ID, defGuild)
 	for _, v := range oldCommands {
-		dg.ApplicationCommandDelete(dg.State.User.ID, "", v.ID)
+		dg.ApplicationCommandDelete(dg.State.User.ID, defGuild, v.ID)
 	}
 
 	//register commands
 	fmt.Println("Registering commands...")
 	for _, v := range commands {
-		_, err := dg.ApplicationCommandCreate(dg.State.User.ID, "565588367002042400", v)
+		_, err := dg.ApplicationCommandCreate(dg.State.User.ID, defGuild, v)
 		if err != nil {
 			fmt.Printf("Cannot create '%v' command: %v\n", v.Name, err)
 		}
 	}
+
+	//go app.StartReminderLoop()
 
 	fmt.Println("Bot is now running. Press CTRL-C to exit.")
 
@@ -149,3 +178,5 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	
 }
 }
+
+//func (app *BotApp) StartReminderLoop() {}

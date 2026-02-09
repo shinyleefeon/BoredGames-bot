@@ -1,0 +1,11 @@
+services:
+  boredgames-bot:
+    build: .
+    container_name: boredgames_bot
+    restart: unless-stopped
+    
+    environment:
+      - DB_PATH=/data/boredgames.db
+    volumes:
+     #makes a data drive to maintain the database across container restarts 
+      - ./bot-data:/data
