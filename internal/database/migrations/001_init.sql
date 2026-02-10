@@ -1,17 +1,18 @@
 -- +goose Up
 CREATE TABLE events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    discord_event_id TEXT NOT NULL DEFAULT '',
     guild_id TEXT NOT NULL,
     title TEXT NOT NULL,
-    start_time DATETIMKE NOT NULL,
+    start_time DATETIME NOT NULL,
     reminder_sent BOOLEAN DEFAULT 0
 );
 
 CREATE TABLE USERS (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    discord_id TEXT NOT NULL,
+    discord_id TEXT NOT NULL UNIQUE,
     username TEXT NOT NULL,
-    streak INTEGER DEFAULT 0,
+    streak INTEGER DEFAULT 1,
     last_victory_time TEXT
 );
 

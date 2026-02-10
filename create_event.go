@@ -1,15 +1,16 @@
 package main
 
 import (
-	
+	"context"
 	"time"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
+	"BoredGames-bot/internal/database"
 )
 
 
-func Create_Event(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func Create_Event(s *discordgo.Session, i *discordgo.InteractionCreate, app *BotApp) {
     data := i.ApplicationCommandData()
     
     // Map options for easy access
@@ -67,13 +68,23 @@ func Create_Event(s *discordgo.Session, i *discordgo.InteractionCreate) {
     }
 
     // 4. Call Discord API
-    _, err = s.GuildScheduledEventCreate(i.GuildID, params)
+    createdEvent, err := s.GuildScheduledEventCreate(i.GuildID, params)
     
     // 5. Final Response
     responseContent := fmt.Sprintf("✅ Event **%s** created for %s!", name, scheduledTime.Format("Mon, Jan _2 @ 3:04 PM"))
     if err != nil {
         responseContent = "❌ Error creating Discord event: " + err.Error()
     }
+	if err == nil {
+		ctx := context.Background()
+		app.Queries.CreateEvent(ctx, database.CreateEventParams{
+			DiscordEventID: createdEvent.ID,
+			GuildID:        i.GuildID,
+			Title:          name,
+			StartTime:      scheduledTime,
+		})
+	}
+		
 
     s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
         Type: discordgo.InteractionResponseChannelMessageWithSource,

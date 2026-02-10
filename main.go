@@ -8,13 +8,16 @@ import (
 	"github.com/joho/godotenv"
 	"strings"
 	"database/sql"
-	//"time"
+	"time"
+	"context"
+	"log"
 	"BoredGames-bot/internal/database"
 )
 
 type BotApp struct {
 	Session *discordgo.Session
 	DB *sql.DB
+	Queries database.Querier
 }
 
 var commands = []*discordgo.ApplicationCommand{
@@ -82,12 +85,12 @@ func main() {
 	fmt.Printf("Using database path: %s\n", dbPath)
 	
 	// run db migrations
-	db, err := database.InitDB(dbPath)
+	dbConn, err := database.InitDB(dbPath)
 	if err != nil {
 		fmt.Printf("Database initialization failed: %v\n", err)
 		return
 	}
-	defer db.Close()
+	defer dbConn.Close()
 
 
 	//make new bot
@@ -97,8 +100,17 @@ func main() {
 		return
 	}
 
+	// Create app before registering handlers
+	app := &BotApp{
+        Session: dg,
+        DB:      dbConn,
+        Queries: database.New(dbConn),
+    }
+
 	dg.AddHandler(messageCreate)
-	dg.AddHandler(handleInteractions)
+	dg.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		handleInteractions(s, i, app)
+	})
 	//Declare intents for discord
 	dg.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentMessageContent | discordgo.IntentsGuildScheduledEvents
 
@@ -125,7 +137,24 @@ func main() {
 		}
 	}
 
-	//go app.StartReminderLoop()
+	currentEvents := PullCurrentEvents(dg, defGuild)
+	if len(currentEvents) > 0 {
+		for _, event := range currentEvents {
+			_, err := app.Queries.GetEventByEventID(context.Background(), event.ID)
+			if err != nil {
+				// Event doesn't exist in database, create it
+				app.Queries.CreateEvent(context.Background(), database.CreateEventParams{
+					DiscordEventID: event.ID,
+					GuildID:        event.GuildID,
+					Title:          event.Name,
+					StartTime:      event.ScheduledStartTime,
+				})
+			}
+		}
+	}
+		
+
+	go app.StartReminderLoop()
 
 	fmt.Println("Bot is now running. Press CTRL-C to exit.")
 
@@ -179,4 +208,95 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 }
 
-//func (app *BotApp) StartReminderLoop() {}
+func (app *BotApp) StartReminderLoop() {
+	ctx := context.Background()
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		events, err := app.Queries.GetEventsForReminder(ctx)
+		if err != nil {
+			log.Printf("Error getting events for reminder: %v", err)
+		}
+
+		for _, event := range events {
+			log.Printf("Reminder for event: %s starting at %v", event.Title, event.StartTime)
+			
+			interestedUsers, err := app.Session.GuildScheduledEventUsers(event.GuildID, event.DiscordEventID, 100, false, "", "")
+			if err != nil {
+				log.Printf("Error fetching interested users for event %d: %v", event.ID, err)
+				continue
+			}
+
+			for _, user := range interestedUsers {
+				dbUser, err := app.Queries.GetUserByDiscordID(ctx, user.User.ID)
+				if err != nil {
+					// User doesn't exist, create them
+					dbUser, err = app.Queries.CreateUser(ctx, database.CreateUserParams{
+						DiscordID: user.User.ID,
+						Username:  user.User.Username,
+					})
+					if err != nil {
+						log.Printf("Error creating user for Discord ID %s: %v", user.User.ID, err)
+						continue
+					}
+				} else {
+					app.Queries.IncrementStreak(ctx, dbUser.ID)
+				}
+				
+				
+				err = app.Queries.AddParticipant(ctx, database.AddParticipantParams{
+					EventID: event.ID,
+					UserID:  dbUser.ID,
+				})
+				if err != nil {
+					log.Printf("Error adding participant for event %d and user %s: %v", event.ID, user.User.ID, err)
+					continue
+				}
+			}
+
+			participantDiscordIDs, err := app.Queries.GetParticipants(ctx, event.ID)
+			if err != nil {
+				log.Printf("Error getting participants for event %d: %v", event.ID, err)
+				continue
+			}
+			fmt.Printf("Sending reminders to participants: %v\n", participantDiscordIDs)
+			for _, discordID := range participantDiscordIDs {
+				ch, err := app.Session.UserChannelCreate(discordID)
+				if err != nil {
+					log.Printf("Error creating DM channel for user %s: %v", discordID, err)
+					continue
+				}
+				msg := fmt.Sprintf("🔔 **Reminder:** '%s' starts in 30 minutes!", event.Title)
+                _, err = app.Session.ChannelMessageSend(ch.ID, msg)
+                if err != nil {
+                     log.Printf("Failed to send DM: %v", err)
+                }
+            }
+			if err := app.Queries.MarkReminderSent(ctx, event.ID); err != nil {
+				log.Printf("Error marking reminder sent for event %d: %v", event.ID, err)
+			}
+		
+		
+		
+		
+		}
+	}
+}
+
+func PullCurrentEvents(s *discordgo.Session, guildID string) []discordgo.GuildScheduledEvent {
+	events, err := s.GuildScheduledEvents(guildID, false)
+	if err != nil {
+		fmt.Printf("Error fetching scheduled events: %v\n", err)
+		return []discordgo.GuildScheduledEvent{}
+	}
+	
+	// Convert []*GuildScheduledEvent to []GuildScheduledEvent
+	result := make([]discordgo.GuildScheduledEvent, len(events))
+	for i, event := range events {
+		if event != nil {
+			result[i] = *event
+		}
+	}
+	return result
+}
