@@ -65,3 +65,10 @@ FROM users;
 SELECT id, discord_event_id, guild_id, title, start_time, reminder_sent
 FROM events
 WHERE discord_event_id = ?;
+
+-- name: AddBoardGame :one
+INSERT INTO boardgames (name, category, min_players, max_players, play_time, description, previous_winner, played_yet, liked_it, rules_link, last_updated) 
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+ON CONFLICT(name) DO UPDATE SET category=excluded.category, min_players=excluded.min_players, max_players=excluded.max_players, play_time=excluded.play_time, description=excluded.description, previous_winner=excluded.previous_winner, played_yet=excluded.played_yet, liked_it=excluded.liked_it, rules_link=excluded.rules_link, last_updated=CURRENT_TIMESTAMP
+RETURNING id, name, category, min_players, max_players, play_time, description, previous_winner, played_yet, liked_it, rules_link, last_updated;
+

@@ -9,6 +9,21 @@ import (
 	"time"
 )
 
+type Boardgame struct {
+	ID             int64          `json:"id"`
+	Name           string         `json:"name"`
+	Category       sql.NullString `json:"category"`
+	MinPlayers     sql.NullInt64  `json:"min_players"`
+	MaxPlayers     sql.NullInt64  `json:"max_players"`
+	PlayTime       sql.NullInt64  `json:"play_time"`
+	Description    sql.NullString `json:"description"`
+	PreviousWinner sql.NullString `json:"previous_winner"`
+	PlayedYet      sql.NullBool   `json:"played_yet"`
+	LikedIt        sql.NullBool   `json:"liked_it"`
+	RulesLink      sql.NullString `json:"rules_link"`
+	LastUpdated    sql.NullTime   `json:"last_updated"`
+}
+
 type Event struct {
 	ID             int64        `json:"id"`
 	DiscordEventID string       `json:"discord_event_id"`

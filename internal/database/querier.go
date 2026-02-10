@@ -10,6 +10,7 @@ import (
 )
 
 type Querier interface {
+	AddBoardGame(ctx context.Context, arg AddBoardGameParams) (Boardgame, error)
 	AddParticipant(ctx context.Context, arg AddParticipantParams) error
 	CreateEvent(ctx context.Context, arg CreateEventParams) (Event, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)

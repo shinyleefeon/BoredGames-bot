@@ -11,6 +11,57 @@ import (
 	"time"
 )
 
+const addBoardGame = `-- name: AddBoardGame :one
+INSERT INTO boardgames (name, category, min_players, max_players, play_time, description, previous_winner, played_yet, liked_it, rules_link, last_updated) 
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+ON CONFLICT(name) DO UPDATE SET category=excluded.category, min_players=excluded.min_players, max_players=excluded.max_players, play_time=excluded.play_time, description=excluded.description, previous_winner=excluded.previous_winner, played_yet=excluded.played_yet, liked_it=excluded.liked_it, rules_link=excluded.rules_link, last_updated=CURRENT_TIMESTAMP
+RETURNING id, name, category, min_players, max_players, play_time, description, previous_winner, played_yet, liked_it, rules_link, last_updated
+`
+
+type AddBoardGameParams struct {
+	Name           string         `json:"name"`
+	Category       sql.NullString `json:"category"`
+	MinPlayers     sql.NullInt64  `json:"min_players"`
+	MaxPlayers     sql.NullInt64  `json:"max_players"`
+	PlayTime       sql.NullInt64  `json:"play_time"`
+	Description    sql.NullString `json:"description"`
+	PreviousWinner sql.NullString `json:"previous_winner"`
+	PlayedYet      sql.NullBool   `json:"played_yet"`
+	LikedIt        sql.NullBool   `json:"liked_it"`
+	RulesLink      sql.NullString `json:"rules_link"`
+}
+
+func (q *Queries) AddBoardGame(ctx context.Context, arg AddBoardGameParams) (Boardgame, error) {
+	row := q.db.QueryRowContext(ctx, addBoardGame,
+		arg.Name,
+		arg.Category,
+		arg.MinPlayers,
+		arg.MaxPlayers,
+		arg.PlayTime,
+		arg.Description,
+		arg.PreviousWinner,
+		arg.PlayedYet,
+		arg.LikedIt,
+		arg.RulesLink,
+	)
+	var i Boardgame
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Category,
+		&i.MinPlayers,
+		&i.MaxPlayers,
+		&i.PlayTime,
+		&i.Description,
+		&i.PreviousWinner,
+		&i.PlayedYet,
+		&i.LikedIt,
+		&i.RulesLink,
+		&i.LastUpdated,
+	)
+	return i, err
+}
+
 const addParticipant = `-- name: AddParticipant :exec
 INSERT OR IGNORE INTO participants (event_id, user_id) VALUES (?, ?)
 `

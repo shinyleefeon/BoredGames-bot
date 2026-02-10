@@ -30,3 +30,6 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+credentials.json
+boredgames-bot-9363e1cc4e68.json

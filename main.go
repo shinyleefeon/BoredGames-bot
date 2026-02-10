@@ -20,6 +20,21 @@ type BotApp struct {
 	Queries database.Querier
 }
 
+type BoardGame struct {
+	Name           string
+	Category       string
+	MinPlayers     int
+	MaxPlayers     int
+	Playtime       int
+	Description    string
+	PreviousWinner string
+	PlayedYet      bool
+	LikedIt        bool
+	RulesLink	  string
+}
+
+var gameLibrary []BoardGame
+
 var commands = []*discordgo.ApplicationCommand{
 	{
         Name:        "schedule",
@@ -104,6 +119,7 @@ func main() {
 	}
 	defer dbConn.Close()
 
+	InitGoogleSheets()
 
 	//make new bot
 	dg, err := discordgo.New("Bot " + token)
@@ -165,6 +181,18 @@ func main() {
 		}
 	}
 		
+	
+	BoardGames, err := GetBoardGames()
+	if err != nil {
+		fmt.Printf("Error getting board games: %v\n", err)
+		return
+	}
+
+	err = SyncGames(dbConn, BoardGames)
+	if err != nil {
+		fmt.Printf("Error syncing board games: %v\n", err)
+		return
+	}
 
 	go app.StartReminderLoop()
 
@@ -175,6 +203,7 @@ func main() {
 	signal.Notify(sc, os.Interrupt)
 	<-sc
 }
+
 
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	//ignore messages from the bot itself
@@ -319,21 +348,4 @@ func (app *BotApp) StartReminderLoop() {
 		
 		}
 	}
-}
-
-func PullCurrentEvents(s *discordgo.Session, guildID string) []discordgo.GuildScheduledEvent {
-	events, err := s.GuildScheduledEvents(guildID, false)
-	if err != nil {
-		fmt.Printf("Error fetching scheduled events: %v\n", err)
-		return []discordgo.GuildScheduledEvent{}
-	}
-	
-	// Convert []*GuildScheduledEvent to []GuildScheduledEvent
-	result := make([]discordgo.GuildScheduledEvent, len(events))
-	for i, event := range events {
-		if event != nil {
-			result[i] = *event
-		}
-	}
-	return result
 }
