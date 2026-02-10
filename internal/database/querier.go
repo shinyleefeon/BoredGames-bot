@@ -13,6 +13,7 @@ type Querier interface {
 	AddParticipant(ctx context.Context, arg AddParticipantParams) error
 	CreateEvent(ctx context.Context, arg CreateEventParams) (Event, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	GetAllUsers(ctx context.Context) ([]User, error)
 	GetEventByEventID(ctx context.Context, discordEventID string) (Event, error)
 	// Finds events starting within the next 30 minutes (approx) that haven't been sent
 	GetEventsForReminder(ctx context.Context) ([]GetEventsForReminderRow, error)
@@ -22,8 +23,8 @@ type Querier interface {
 	GetUserStreak(ctx context.Context, id int64) (sql.NullInt64, error)
 	IncrementStreak(ctx context.Context, id int64) error
 	MarkReminderSent(ctx context.Context, id int64) error
+	ResetStreak(ctx context.Context, id int64) error
 	UpdateUserVictory(ctx context.Context, id int64) error
-	resetStreak(ctx context.Context, id int64) error
 }
 
 var _ Querier = (*Queries)(nil)

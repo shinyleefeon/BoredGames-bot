@@ -56,7 +56,19 @@ var commands = []*discordgo.ApplicationCommand{
                 Required:    false,
             },
         },
-    },
+	},
+	{
+		Name: "streak",
+		Description: "Check your current attendance streak",
+		Options: []*discordgo.ApplicationCommandOption{
+			{
+				Name: "user",
+				Type: discordgo.ApplicationCommandOptionUser,
+				Description: "The user to check the streak for",
+				Required: true,
+			},
+		},
+	},
 }
 
 
@@ -273,6 +285,31 @@ func (app *BotApp) StartReminderLoop() {
                      log.Printf("Failed to send DM: %v", err)
                 }
             }
+			
+			// Reset streaks for users who aren't participating
+			allUsers, err := app.Queries.GetAllUsers(ctx)
+			if err != nil {
+				log.Printf("Error getting all users: %v", err)
+			} else {
+				// Create a map of participating discord IDs for quick lookup
+				participantMap := make(map[string]bool)
+				for _, discordID := range participantDiscordIDs {
+					participantMap[discordID] = true
+				}
+				
+				// Reset streak for users not participating
+				for _, user := range allUsers {
+					if !participantMap[user.DiscordID] {
+						err := app.Queries.ResetStreak(ctx, user.ID)
+						if err != nil {
+							log.Printf("Error resetting streak for user %s: %v", user.DiscordID, err)
+						} else {
+							log.Printf("Reset streak for non-participating user: %s", user.Username)
+						}
+					}
+				}
+			}
+			
 			if err := app.Queries.MarkReminderSent(ctx, event.ID); err != nil {
 				log.Printf("Error marking reminder sent for event %d: %v", event.ID, err)
 			}

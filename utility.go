@@ -14,9 +14,11 @@ func handleInteractions(s *discordgo.Session, i *discordgo.InteractionCreate, ap
 
     switch i.ApplicationCommandData().Name {
     case "schedule":
-        Create_Event(s, i, app) // Calling the Create_Event function
+        Create_Event(s, i, app)
+	case "streak":
+		Check_Streak(s, i, app)
     // Future cases go here:
     // case "record-win":
     //     Record_Win(s, i)
-    }
+	}
 }

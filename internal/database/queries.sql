@@ -52,10 +52,14 @@ UPDATE users
 SET streak = streak + 1, last_victory_time = datetime('now')
 WHERE id = ?;
 
--- name: resetStreak :exec
+-- name: ResetStreak :exec
 UPDATE users
 SET streak = 0
 WHERE id = ?;
+
+-- name: GetAllUsers :many
+SELECT id, discord_id, username, streak, last_victory_time
+FROM users;
 
 -- name: GetEventByEventID :one
 SELECT id, discord_event_id, guild_id, title, start_time, reminder_sent

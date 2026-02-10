@@ -79,6 +79,40 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const getAllUsers = `-- name: GetAllUsers :many
+SELECT id, discord_id, username, streak, last_victory_time
+FROM users
+`
+
+func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, getAllUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.DiscordID,
+			&i.Username,
+			&i.Streak,
+			&i.LastVictoryTime,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getEventByEventID = `-- name: GetEventByEventID :one
 SELECT id, discord_event_id, guild_id, title, start_time, reminder_sent
 FROM events
@@ -241,6 +275,17 @@ func (q *Queries) MarkReminderSent(ctx context.Context, id int64) error {
 	return err
 }
 
+const resetStreak = `-- name: ResetStreak :exec
+UPDATE users
+SET streak = 0
+WHERE id = ?
+`
+
+func (q *Queries) ResetStreak(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, resetStreak, id)
+	return err
+}
+
 const updateUserVictory = `-- name: UpdateUserVictory :exec
 UPDATE users 
 SET streak = streak + 1, last_victory_time = datetime('now') 
@@ -249,16 +294,5 @@ WHERE id = ?
 
 func (q *Queries) UpdateUserVictory(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, updateUserVictory, id)
-	return err
-}
-
-const resetStreak = `-- name: resetStreak :exec
-UPDATE users
-SET streak = 0
-WHERE id = ?
-`
-
-func (q *Queries) resetStreak(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, resetStreak, id)
 	return err
 }
