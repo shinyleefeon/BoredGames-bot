@@ -27,3 +27,8 @@ This bot is pretty much just for me but feel free to reach out to me if you want
 !TODO 
 Containerization is broken. I suspect I just need to add some parameters at setup and store a credentials file supplied by the user.
 Add any functionality I think of
+
+
+### Submit a pull request
+
+If you'd like to contribute, please fork the repository and open a pull request to the `main` branch.
