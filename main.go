@@ -84,6 +84,24 @@ var commands = []*discordgo.ApplicationCommand{
 			},
 		},
 	},
+	{
+		Name: "recommend",
+		Description: "Get a board game recommendation based on number of players",
+		Options: []*discordgo.ApplicationCommandOption{
+			{
+				Name: "players",
+				Type: discordgo.ApplicationCommandOptionInteger,
+				Description: "Number of players",
+				Required: true,
+			},
+			{
+				Name: "played_yet",
+				Type: discordgo.ApplicationCommandOptionBoolean,
+				Description: "Have we played the game before?",
+				Required: false,
+			},
+		},
+	},
 }
 
 

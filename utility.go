@@ -29,6 +29,8 @@ func handleInteractions(s *discordgo.Session, i *discordgo.InteractionCreate, ap
         Create_Event(s, i, app)
 	case "streak":
 		Check_Streak(s, i, app)
+	case "recommend":
+		Recommend_game(s, i, app)
     // Future cases go here:
     // case "record-win":
     //     Record_Win(s, i)
@@ -84,9 +86,28 @@ func GetBoardGames() ([]BoardGame, error) {
 		return nil, fmt.Errorf("unable to retrieve data from sheet: %v", err)
 	}
 
+	// Get hyperlink metadata using the Spreadsheets.Get method
+	spreadsheet, err := SheetsService.Spreadsheets.Get(SpreadsheetID).IncludeGridData(true).Ranges(readRange).Do()
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve spreadsheet metadata: %v", err)
+	}
+
+	// Build a map of row/column to hyperlinks
+	hyperlinks := make(map[string]string)
+	if len(spreadsheet.Sheets) > 0 && len(spreadsheet.Sheets[0].Data) > 0 {
+		for rowIdx, rowData := range spreadsheet.Sheets[0].Data[0].RowData {
+			for colIdx, cellData := range rowData.Values {
+				if cellData.Hyperlink != "" {
+					key := fmt.Sprintf("%d,%d", rowIdx, colIdx)
+					hyperlinks[key] = cellData.Hyperlink
+				}
+			}
+		}
+	}
+
 	var games []BoardGame
 
-	for _, row := range resp.Values {
+	for rowIdx, row := range resp.Values {
 		// Ensure the row has enough columns to avoid "index out of range"
 		if len(row) < 10 {
 			continue // Skip incomplete rows
@@ -105,7 +126,11 @@ func GetBoardGames() ([]BoardGame, error) {
 		played := row[7] == "TRUE"
 		liked := row[8] == "TRUE"
 		
+		// Get actual hyperlink URL from metadata if available, otherwise use cell text
 		link := fmt.Sprintf("%v", row[9])
+		if hyperlink, ok := hyperlinks[fmt.Sprintf("%d,%d", rowIdx, 9)]; ok {
+			link = hyperlink
+		}
 
 		game := BoardGame{
 			Name:           name,

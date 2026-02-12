@@ -24,6 +24,9 @@ type Querier interface {
 	GetUserStreak(ctx context.Context, id int64) (sql.NullInt64, error)
 	IncrementStreak(ctx context.Context, id int64) error
 	MarkReminderSent(ctx context.Context, id int64) error
+	RecomendPlayedBoardGame(ctx context.Context, arg RecomendPlayedBoardGameParams) ([]RecomendPlayedBoardGameRow, error)
+	RecomendUnplayedBoardGame(ctx context.Context, arg RecomendUnplayedBoardGameParams) ([]RecomendUnplayedBoardGameRow, error)
+	RecommendRandomBoardGame(ctx context.Context, arg RecommendRandomBoardGameParams) ([]RecommendRandomBoardGameRow, error)
 	ResetStreak(ctx context.Context, id int64) error
 	UpdateUserVictory(ctx context.Context, id int64) error
 }

@@ -72,3 +72,23 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
 ON CONFLICT(name) DO UPDATE SET category=excluded.category, min_players=excluded.min_players, max_players=excluded.max_players, play_time=excluded.play_time, description=excluded.description, previous_winner=excluded.previous_winner, played_yet=excluded.played_yet, liked_it=excluded.liked_it, rules_link=excluded.rules_link, last_updated=CURRENT_TIMESTAMP
 RETURNING id, name, category, min_players, max_players, play_time, description, previous_winner, played_yet, liked_it, rules_link, last_updated;
 
+-- name: RecomendUnplayedBoardGame :many
+SELECT name, description, rules_link
+FROM boardgames
+WHERE played_yet = 0 AND min_players <= ? AND max_players >= ?
+ORDER BY RANDOM()
+LIMIT 4;
+
+-- name: RecomendPlayedBoardGame :many
+SELECT name, description, rules_link
+FROM boardgames
+WHERE played_yet = 1 AND min_players <= ? AND max_players >= ?
+ORDER BY RANDOM()
+LIMIT 4;
+
+-- name: RecommendRandomBoardGame :many
+SELECT name, description, rules_link
+FROM boardgames
+WHERE min_players <= ? AND max_players >= ?
+ORDER BY RANDOM()
+LIMIT 4;

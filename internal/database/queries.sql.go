@@ -326,6 +326,132 @@ func (q *Queries) MarkReminderSent(ctx context.Context, id int64) error {
 	return err
 }
 
+const recomendPlayedBoardGame = `-- name: RecomendPlayedBoardGame :many
+SELECT name, description, rules_link
+FROM boardgames
+WHERE played_yet = 1 AND min_players <= ? AND max_players >= ?
+ORDER BY RANDOM()
+LIMIT 4
+`
+
+type RecomendPlayedBoardGameParams struct {
+	MinPlayers sql.NullInt64 `json:"min_players"`
+	MaxPlayers sql.NullInt64 `json:"max_players"`
+}
+
+type RecomendPlayedBoardGameRow struct {
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	RulesLink   sql.NullString `json:"rules_link"`
+}
+
+func (q *Queries) RecomendPlayedBoardGame(ctx context.Context, arg RecomendPlayedBoardGameParams) ([]RecomendPlayedBoardGameRow, error) {
+	rows, err := q.db.QueryContext(ctx, recomendPlayedBoardGame, arg.MinPlayers, arg.MaxPlayers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RecomendPlayedBoardGameRow
+	for rows.Next() {
+		var i RecomendPlayedBoardGameRow
+		if err := rows.Scan(&i.Name, &i.Description, &i.RulesLink); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const recomendUnplayedBoardGame = `-- name: RecomendUnplayedBoardGame :many
+SELECT name, description, rules_link
+FROM boardgames
+WHERE played_yet = 0 AND min_players <= ? AND max_players >= ?
+ORDER BY RANDOM()
+LIMIT 4
+`
+
+type RecomendUnplayedBoardGameParams struct {
+	MinPlayers sql.NullInt64 `json:"min_players"`
+	MaxPlayers sql.NullInt64 `json:"max_players"`
+}
+
+type RecomendUnplayedBoardGameRow struct {
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	RulesLink   sql.NullString `json:"rules_link"`
+}
+
+func (q *Queries) RecomendUnplayedBoardGame(ctx context.Context, arg RecomendUnplayedBoardGameParams) ([]RecomendUnplayedBoardGameRow, error) {
+	rows, err := q.db.QueryContext(ctx, recomendUnplayedBoardGame, arg.MinPlayers, arg.MaxPlayers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RecomendUnplayedBoardGameRow
+	for rows.Next() {
+		var i RecomendUnplayedBoardGameRow
+		if err := rows.Scan(&i.Name, &i.Description, &i.RulesLink); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const recommendRandomBoardGame = `-- name: RecommendRandomBoardGame :many
+SELECT name, description, rules_link
+FROM boardgames
+WHERE min_players <= ? AND max_players >= ?
+ORDER BY RANDOM()
+LIMIT 4
+`
+
+type RecommendRandomBoardGameParams struct {
+	MinPlayers sql.NullInt64 `json:"min_players"`
+	MaxPlayers sql.NullInt64 `json:"max_players"`
+}
+
+type RecommendRandomBoardGameRow struct {
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	RulesLink   sql.NullString `json:"rules_link"`
+}
+
+func (q *Queries) RecommendRandomBoardGame(ctx context.Context, arg RecommendRandomBoardGameParams) ([]RecommendRandomBoardGameRow, error) {
+	rows, err := q.db.QueryContext(ctx, recommendRandomBoardGame, arg.MinPlayers, arg.MaxPlayers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RecommendRandomBoardGameRow
+	for rows.Next() {
+		var i RecommendRandomBoardGameRow
+		if err := rows.Scan(&i.Name, &i.Description, &i.RulesLink); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const resetStreak = `-- name: ResetStreak :exec
 UPDATE users
 SET streak = 0
