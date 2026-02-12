@@ -6,7 +6,8 @@ The main utility that I focused on was creating a database with games stored fro
 Containerization is broken. I suspect I just need to add some parameters at setup and store a credentials file supplied by the user.
 Add any functionality I think of
 
-Setup
+## Setup
+
 Create/edit a .env file in the root with this information:
 
 Since containerization is broken, the best way to setup will be to download the package, navigate to it in a terminal and go run .
