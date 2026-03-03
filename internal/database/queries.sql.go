@@ -452,6 +452,16 @@ func (q *Queries) RecommendRandomBoardGame(ctx context.Context, arg RecommendRan
 	return items, nil
 }
 
+const removeEvent = `-- name: RemoveEvent :exec
+DELETE FROM events
+WHERE id = ?
+`
+
+func (q *Queries) RemoveEvent(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, removeEvent, id)
+	return err
+}
+
 const resetStreak = `-- name: ResetStreak :exec
 UPDATE users
 SET streak = 0

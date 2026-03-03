@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -282,7 +283,17 @@ func (app *BotApp) StartReminderLoop() {
 			log.Printf("Reminder for event: %s starting at %v", event.Title, event.StartTime)
 			
 			interestedUsers, err := app.Session.GuildScheduledEventUsers(event.GuildID, event.DiscordEventID, 100, false, "", "")
+
 			if err != nil {
+				const unknownGuildScheduledEventCode = 10070
+				var restErr *discordgo.RESTError
+				if errors.As(err, &restErr) && restErr.Message != nil && restErr.Message.Code == unknownGuildScheduledEventCode {
+					err := app.Queries.RemoveEvent(ctx, event.ID)
+					if err != nil {
+						log.Printf("Error removing event %d: %v", event.ID, err)
+					}
+					continue
+				}
 				log.Printf("Error fetching interested users for event %d: %v", event.ID, err)
 				continue
 			}

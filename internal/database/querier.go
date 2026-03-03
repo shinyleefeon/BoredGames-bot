@@ -27,6 +27,7 @@ type Querier interface {
 	RecomendPlayedBoardGame(ctx context.Context, arg RecomendPlayedBoardGameParams) ([]RecomendPlayedBoardGameRow, error)
 	RecomendUnplayedBoardGame(ctx context.Context, arg RecomendUnplayedBoardGameParams) ([]RecomendUnplayedBoardGameRow, error)
 	RecommendRandomBoardGame(ctx context.Context, arg RecommendRandomBoardGameParams) ([]RecommendRandomBoardGameRow, error)
+	RemoveEvent(ctx context.Context, id int64) error
 	ResetStreak(ctx context.Context, id int64) error
 	UpdateUserVictory(ctx context.Context, id int64) error
 }

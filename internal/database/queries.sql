@@ -92,3 +92,7 @@ FROM boardgames
 WHERE min_players <= ? AND max_players >= ?
 ORDER BY RANDOM()
 LIMIT 4;
+
+-- name: RemoveEvent :exec
+DELETE FROM events
+WHERE id = ?;
